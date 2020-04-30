@@ -90,8 +90,8 @@ bool ImageView::keyboard_event(int key, int /* scancode */, int action, int /* m
     if (!m_enabled || !m_image)
         return false;
 
-    if (action == GLFW_PRESS) {
-        if (key == GLFW_KEY_R) {
+    if (action == NANOGUI_PRESS) {
+        if (key == NANOGUI_KEY_R) {
             reset();
             return true;
         }

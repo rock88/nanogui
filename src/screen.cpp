@@ -56,8 +56,10 @@
 #endif
 
 #if defined(__APPLE__)
+#ifndef NANOGUI_NO_GLFW
 #  define GLFW_EXPOSE_NATIVE_COCOA 1
 #  include <GLFW/glfw3native.h>
+#endif
 #endif
 
 #if !defined(GL_RGBA_FLOAT_MODE)
@@ -66,12 +68,17 @@
 
 NAMESPACE_BEGIN(nanogui)
 
+#ifndef NANOGUI_NO_GLFW
 std::map<GLFWwindow *, Screen *> __nanogui_screens;
+#else
+std::vector<Screen *> __nanogui_screens;
+#endif
 
 #if defined(NANOGUI_GLAD)
 static bool glad_initialized = false;
 #endif
 
+#ifndef NANOGUI_NO_GLFW
 /* Calculate pixel ratio for hi-dpi devices. */
 static float get_pixel_ratio(GLFWwindow *window) {
 #if defined(EMSCRIPTEN)
@@ -131,6 +138,7 @@ static float get_pixel_ratio(GLFWwindow *window) {
     return (float)fb_size[0] / (float)size[0];
 #endif
 }
+#endif
 
 #if defined(EMSCRIPTEN)
 static EM_BOOL nanogui_emscripten_resize_callback(int eventType, const EmscriptenUiEvent *, void *) {
@@ -157,6 +165,7 @@ static EM_BOOL nanogui_emscripten_resize_callback(int eventType, const Emscripte
 }
 #endif
 
+#ifndef NANOGUI_NO_GLFW
 Screen::Screen()
     : Widget(nullptr), m_glfw_window(nullptr), m_nvg_context(nullptr),
       m_cursor(Cursor::Arrow), m_background(0.3f, 0.3f, 0.32f, 1.f),
@@ -176,16 +185,30 @@ Screen::Screen()
     m_float_buffer = (bool) float_mode;
 #endif
 }
+#endif
 
 Screen::Screen(const Vector2i &size, const std::string &caption, bool resizable,
                bool fullscreen, bool depth_buffer, bool stencil_buffer,
                bool float_buffer, unsigned int gl_major, unsigned int gl_minor)
-    : Widget(nullptr), m_glfw_window(nullptr), m_nvg_context(nullptr),
+    : Widget(nullptr),
+      #ifndef NANOGUI_NO_GLFW
+      m_glfw_window(nullptr),
+      #endif
+      m_nvg_context(nullptr),
       m_cursor(Cursor::Arrow), m_background(0.3f, 0.3f, 0.32f, 1.f), m_caption(caption),
       m_shutdown_glfw(false), m_fullscreen(fullscreen), m_depth_buffer(depth_buffer),
       m_stencil_buffer(stencil_buffer), m_float_buffer(float_buffer), m_redraw(false) {
+    #ifndef NANOGUI_NO_GLFW
     memset(m_cursors, 0, sizeof(GLFWcursor *) * (int) Cursor::CursorCount);
+    #else
+    m_size = size;
+    m_fbsize = size;
+    #if __APPLE__
+    m_fbsize = m_fbsize * 2;
+    #endif
+    #endif
 
+#ifndef NANOGUI_NO_GLFW
 #if defined(NANOGUI_USE_OPENGL)
     glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
 
@@ -258,6 +281,7 @@ Screen::Screen(const Vector2i &size, const std::string &caption, bool resizable,
             break;
         }
     }
+#endif
 
 #if defined(NANOGUI_USE_OPENGL)
     if (m_float_buffer) {
@@ -270,6 +294,7 @@ Screen::Screen(const Vector2i &size, const std::string &caption, bool resizable,
     }
 #endif
 
+#ifndef NANOGUI_NO_GLFW
     if (!m_glfw_window) {
         (void) gl_major; (void) gl_minor;
 #if defined(NANOGUI_USE_OPENGL)
@@ -283,12 +308,15 @@ Screen::Screen(const Vector2i &size, const std::string &caption, bool resizable,
             "Could not create a GLFW window for rendering using Metal!");
 #endif
     }
+#endif
 
+#ifndef NANOGUI_NO_GLFW
 #if defined(NANOGUI_USE_OPENGL) || defined(NANOGUI_USE_GLES)
     glfwMakeContextCurrent(m_glfw_window);
 #endif
 
     glfwSetInputMode(m_glfw_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+#endif
 
 #if defined(NANOGUI_GLAD)
     if (!glad_initialized) {
@@ -299,6 +327,7 @@ Screen::Screen(const Vector2i &size, const std::string &caption, bool resizable,
     }
 #endif
 
+#ifndef NANOGUI_NO_GLFW
     glfwGetFramebufferSize(m_glfw_window, &m_fbsize[0], &m_fbsize[1]);
 
 #if defined(NANOGUI_USE_OPENGL) || defined(NANOGUI_USE_GLES)
@@ -425,6 +454,9 @@ Screen::Screen(const Vector2i &size, const std::string &caption, bool resizable,
         }
     );
     initialize(m_glfw_window, true);
+#else
+    initialize();
+#endif
 
 #if defined(NANOGUI_USE_METAL)
     if (depth_buffer) {
@@ -443,13 +475,21 @@ Screen::Screen(const Vector2i &size, const std::string &caption, bool resizable,
 #endif
 }
 
-void Screen::initialize(GLFWwindow *window, bool shutdown_glfw) {
+void Screen::initialize(
+    #ifndef NANOGUI_NO_GLFW
+    GLFWwindow *window, bool shutdown_glfw
+    #endif
+    ) {
+    #ifndef NANOGUI_NO_GLFW
     m_glfw_window = window;
     m_shutdown_glfw = shutdown_glfw;
     glfwGetWindowSize(m_glfw_window, &m_size[0], &m_size[1]);
     glfwGetFramebufferSize(m_glfw_window, &m_fbsize[0], &m_fbsize[1]);
 
     m_pixel_ratio = get_pixel_ratio(window);
+    #else
+    m_pixel_ratio = 1;
+    #endif
 
 #if defined(EMSCRIPTEN)
     double w, h;
@@ -508,18 +548,27 @@ void Screen::initialize(GLFWwindow *window, bool shutdown_glfw) {
     if (!m_nvg_context)
         throw std::runtime_error("Could not initialize NanoVG!");
 
+    #ifndef NANOGUI_NO_GLFW
     m_visible = glfwGetWindowAttrib(window, GLFW_VISIBLE) != 0;
+    #else
+    m_visible = true;
+    #endif
     set_theme(new Theme(m_nvg_context));
     m_mouse_pos = Vector2i(0);
     m_mouse_state = m_modifiers = 0;
     m_drag_active = false;
-    m_last_interaction = glfwGetTime();
+    m_last_interaction = getTime();
     m_process_events = true;
     m_redraw = true;
+        
+    #ifndef NANOGUI_NO_GLFW
     __nanogui_screens[m_glfw_window] = this;
 
     for (size_t i = 0; i < (size_t) Cursor::CursorCount; ++i)
         m_cursors[i] = glfwCreateStandardCursor(GLFW_ARROW_CURSOR + (int) i);
+    #else
+    __nanogui_screens.push_back(this);
+    #endif
 
     /// Fixes retina display-related font rendering issue (#185)
     nvgBeginFrame(m_nvg_context, m_size[0], m_size[1], m_pixel_ratio);
@@ -527,11 +576,17 @@ void Screen::initialize(GLFWwindow *window, bool shutdown_glfw) {
 }
 
 Screen::~Screen() {
+    #ifndef NANOGUI_NO_GLFW
     __nanogui_screens.erase(m_glfw_window);
     for (size_t i = 0; i < (size_t) Cursor::CursorCount; ++i) {
         if (m_cursors[i])
             glfwDestroyCursor(m_cursors[i]);
     }
+    #else
+    auto position = std::find(__nanogui_screens.begin(), __nanogui_screens.end(), this);
+    if (position != __nanogui_screens.end())
+        __nanogui_screens.erase(position);
+    #endif
 
     if (m_nvg_context) {
 #if defined(NANOGUI_USE_OPENGL)
@@ -543,24 +598,30 @@ Screen::~Screen() {
 #endif
     }
 
+    #ifndef NANOGUI_NO_GLFW
     if (m_glfw_window && m_shutdown_glfw)
         glfwDestroyWindow(m_glfw_window);
+    #endif
 }
 
 void Screen::set_visible(bool visible) {
     if (m_visible != visible) {
         m_visible = visible;
 
+        #ifndef NANOGUI_NO_GLFW
         if (visible)
             glfwShowWindow(m_glfw_window);
         else
             glfwHideWindow(m_glfw_window);
+        #endif
     }
 }
 
 void Screen::set_caption(const std::string &caption) {
     if (caption != m_caption) {
+        #ifndef NANOGUI_NO_GLFW
         glfwSetWindowTitle(m_glfw_window, caption.c_str());
+        #endif
         m_caption = caption;
     }
 }
@@ -572,7 +633,9 @@ void Screen::set_size(const Vector2i &size) {
     glfwSetWindowSize(m_glfw_window, size.x() * m_pixel_ratio,
                                      size.y() * m_pixel_ratio);
 #else
+    #ifndef NANOGUI_NO_GLFW
     glfwSetWindowSize(m_glfw_window, size.x(), size.y());
+    #endif
 #endif
 }
 
@@ -587,7 +650,9 @@ void Screen::clear() {
 
 void Screen::draw_setup() {
 #if defined(NANOGUI_USE_OPENGL) || defined(NANOGUI_USE_GLES)
+    #ifndef NANOGUI_NO_GLFW
     glfwMakeContextCurrent(m_glfw_window);
+    #endif
 #elif defined(NANOGUI_USE_METAL)
     void *nswin = glfwGetCocoaWindow(m_glfw_window);
     metal_window_set_size(nswin, m_fbsize);
@@ -597,8 +662,10 @@ void Screen::draw_setup() {
 #endif
 
 #if !defined(EMSCRIPTEN)
+    #ifndef NANOGUI_NO_GLFW
     glfwGetFramebufferSize(m_glfw_window, &m_fbsize[0], &m_fbsize[1]);
     glfwGetWindowSize(m_glfw_window, &m_size[0], &m_size[1]);
+    #endif
 #else
     emscripten_get_canvas_element_size("#canvas", &m_size[0], &m_size[1]);
     m_fbsize = m_size;
@@ -620,7 +687,9 @@ void Screen::draw_setup() {
 
 void Screen::draw_teardown() {
 #if defined(NANOGUI_USE_OPENGL) || defined(NANOGUI_USE_GLES)
+    #ifndef NANOGUI_NO_GLFW
     glfwSwapBuffers(m_glfw_window);
+    #endif
 #elif defined(NANOGUI_USE_METAL)
     mnvgSetColorTexture(m_nvg_context, nullptr);
     metal_present_and_release_drawable(m_metal_drawable);
@@ -655,7 +724,7 @@ void Screen::draw_widgets() {
 
     draw(m_nvg_context);
 
-    double elapsed = glfwGetTime() - m_last_interaction;
+    double elapsed = getTime() - m_last_interaction;
 
     if (elapsed > 0.5f) {
         /* Draw tooltips */
@@ -748,7 +817,9 @@ void Screen::redraw() {
     if (!m_redraw) {
         m_redraw = true;
         #if !defined(EMSCRIPTEN)
+            #ifndef NANOGUI_NO_GLFW
             glfwPostEmptyEvent();
+            #endif
         #endif
     }
 }
@@ -760,7 +831,7 @@ void Screen::cursor_pos_callback_event(double x, double y) {
     p = Vector2i(Vector2f(p) / m_pixel_ratio);
 #endif
 
-    m_last_interaction = glfwGetTime();
+    m_last_interaction = getTime();
     try {
         p -= Vector2i(1, 2);
 
@@ -769,7 +840,9 @@ void Screen::cursor_pos_callback_event(double x, double y) {
             Widget *widget = find_widget(p);
             if (widget != nullptr && widget->cursor() != m_cursor) {
                 m_cursor = widget->cursor();
+                #ifndef NANOGUI_NO_GLFW
                 glfwSetCursor(m_glfw_window, m_cursors[(int) m_cursor]);
+                #endif
             }
         } else {
             ret = m_drag_widget->mouse_drag_event(
@@ -789,11 +862,11 @@ void Screen::cursor_pos_callback_event(double x, double y) {
 
 void Screen::mouse_button_callback_event(int button, int action, int modifiers) {
     m_modifiers = modifiers;
-    m_last_interaction = glfwGetTime();
+    m_last_interaction = getTime();
 
     #if defined(__APPLE__)
-        if (button == GLFW_MOUSE_BUTTON_1 && modifiers == GLFW_MOD_CONTROL)
-            button = GLFW_MOUSE_BUTTON_2;
+        if (button == NANOGUI_MOUSE_BUTTON_1 && modifiers == NANOGUI_MOD_CONTROL)
+            button = NANOGUI_MOUSE_BUTTON_2;
     #endif
 
     try {
@@ -806,13 +879,13 @@ void Screen::mouse_button_callback_event(int button, int action, int modifiers) 
             }
         }
 
-        if (action == GLFW_PRESS)
+        if (action == NANOGUI_PRESS)
             m_mouse_state |= 1 << button;
         else
             m_mouse_state &= ~(1 << button);
 
         auto drop_widget = find_widget(m_mouse_pos);
-        if (m_drag_active && action == GLFW_RELEASE &&
+        if (m_drag_active && action == NANOGUI_RELEASE &&
             drop_widget != m_drag_widget) {
             m_redraw |= m_drag_widget->mouse_button_event(
                 m_mouse_pos - m_drag_widget->parent()->absolute_position(), button,
@@ -821,32 +894,34 @@ void Screen::mouse_button_callback_event(int button, int action, int modifiers) 
 
         if (drop_widget != nullptr && drop_widget->cursor() != m_cursor) {
             m_cursor = drop_widget->cursor();
+            #ifndef NANOGUI_NO_GLFW
             glfwSetCursor(m_glfw_window, m_cursors[(int) m_cursor]);
+            #endif
         }
 
-        bool btn12 = button == GLFW_MOUSE_BUTTON_1 || button == GLFW_MOUSE_BUTTON_2;
+        bool btn12 = button == NANOGUI_MOUSE_BUTTON_1 || button == NANOGUI_MOUSE_BUTTON_2;
 
-        if (!m_drag_active && action == GLFW_PRESS && btn12) {
+        if (!m_drag_active && action == NANOGUI_PRESS && btn12) {
             m_drag_widget = find_widget(m_mouse_pos);
             if (m_drag_widget == this)
                 m_drag_widget = nullptr;
             m_drag_active = m_drag_widget != nullptr;
             if (!m_drag_active)
                 update_focus(nullptr);
-        } else if (m_drag_active && action == GLFW_RELEASE && btn12) {
+        } else if (m_drag_active && action == NANOGUI_RELEASE && btn12) {
             m_drag_active = false;
             m_drag_widget = nullptr;
         }
 
         m_redraw |= mouse_button_event(m_mouse_pos, button,
-                                       action == GLFW_PRESS, m_modifiers);
+                                       action == NANOGUI_PRESS, m_modifiers);
     } catch (const std::exception &e) {
         std::cerr << "Caught exception in event handler: " << e.what() << std::endl;
     }
 }
 
 void Screen::key_callback_event(int key, int scancode, int action, int mods) {
-    m_last_interaction = glfwGetTime();
+    m_last_interaction = getTime();
     try {
         m_redraw |= keyboard_event(key, scancode, action, mods);
     } catch (const std::exception &e) {
@@ -855,7 +930,7 @@ void Screen::key_callback_event(int key, int scancode, int action, int mods) {
 }
 
 void Screen::char_callback_event(unsigned int codepoint) {
-    m_last_interaction = glfwGetTime();
+    m_last_interaction = getTime();
     try {
         m_redraw |= keyboard_character_event(codepoint);
     } catch (const std::exception &e) {
@@ -871,7 +946,7 @@ void Screen::drop_callback_event(int count, const char **filenames) {
 }
 
 void Screen::scroll_callback_event(double x, double y) {
-    m_last_interaction = glfwGetTime();
+    m_last_interaction = getTime();
     try {
         if (m_focus_path.size() > 1) {
             const Window *window =
@@ -891,18 +966,20 @@ void Screen::resize_callback_event(int, int) {
 #if defined(EMSCRIPTEN)
     return;
 #endif
+    #ifndef NANOGUI_NO_GLFW
     Vector2i fb_size, size;
     glfwGetFramebufferSize(m_glfw_window, &fb_size[0], &fb_size[1]);
     glfwGetWindowSize(m_glfw_window, &size[0], &size[1]);
     if (fb_size == Vector2i(0, 0) || size == Vector2i(0, 0))
         return;
     m_fbsize = fb_size; m_size = size;
+    #endif
 
 #if defined(_WIN32) || defined(__linux__) || defined(EMSCRIPTEN)
     m_size = Vector2i(Vector2f(m_size) / m_pixel_ratio);
 #endif
 
-    m_last_interaction = glfwGetTime();
+    m_last_interaction = getTime();
 
 #if defined(NANOGUI_USE_METAL)
     if (m_depth_stencil_texture)
@@ -977,7 +1054,7 @@ void Screen::move_window_to_front(Window *window) {
 }
 
 bool Screen::tooltip_fade_in_progress() const {
-    double elapsed = glfwGetTime() - m_last_interaction;
+    double elapsed = getTime() - m_last_interaction;
     if (elapsed < 0.25f || elapsed > 1.25f)
         return false;
     /* Temporarily increase the frame rate to fade in the tooltip */

@@ -288,7 +288,7 @@ bool TextBox::mouse_enter_event(const Vector2i &p, bool enter) {
 bool TextBox::mouse_button_event(const Vector2i &p, int button, bool down,
                                  int modifiers) {
 
-    if (button == GLFW_MOUSE_BUTTON_1 && down && !m_focused) {
+    if (button == NANOGUI_MOUSE_BUTTON_1 && down && !m_focused) {
         if (!m_spinnable || spin_area(p) == SpinArea::None) /* not on scrolling arrows */
             request_focus();
     }
@@ -298,7 +298,7 @@ bool TextBox::mouse_button_event(const Vector2i &p, int button, bool down,
             m_mouse_down_pos = p;
             m_mouse_down_modifier = modifiers;
 
-            double time = glfwGetTime();
+            double time = getTime();
             if (time - m_last_click < 0.25) {
                 /* Double-click: select all text */
                 m_selection_pos = 0;
@@ -317,7 +317,7 @@ bool TextBox::mouse_button_event(const Vector2i &p, int button, bool down,
                 m_mouse_down_pos = p;
                 m_mouse_down_modifier = modifiers;
 
-                double time = glfwGetTime();
+                double time = getTime();
                 if (time - m_last_click < 0.25) {
                     /* Double-click: reset to default value */
                     m_value = m_default_value;
@@ -401,9 +401,9 @@ bool TextBox::focus_event(bool focused) {
 
 bool TextBox::keyboard_event(int key, int /* scancode */, int action, int modifiers) {
     if (m_editable && focused()) {
-        if (action == GLFW_PRESS || action == GLFW_REPEAT) {
-            if (key == GLFW_KEY_LEFT) {
-                if (modifiers == GLFW_MOD_SHIFT) {
+        if (action == NANOGUI_PRESS || action == NANOGUI_REPEAT) {
+            if (key == NANOGUI_KEY_LEFT) {
+                if (modifiers == NANOGUI_MOD_SHIFT) {
                     if (m_selection_pos == -1)
                         m_selection_pos = m_cursor_pos;
                 } else {
@@ -412,8 +412,8 @@ bool TextBox::keyboard_event(int key, int /* scancode */, int action, int modifi
 
                 if (m_cursor_pos > 0)
                     m_cursor_pos--;
-            } else if (key == GLFW_KEY_RIGHT) {
-                if (modifiers == GLFW_MOD_SHIFT) {
+            } else if (key == NANOGUI_KEY_RIGHT) {
+                if (modifiers == NANOGUI_MOD_SHIFT) {
                     if (m_selection_pos == -1)
                         m_selection_pos = m_cursor_pos;
                 } else {
@@ -422,8 +422,8 @@ bool TextBox::keyboard_event(int key, int /* scancode */, int action, int modifi
 
                 if (m_cursor_pos < (int) m_value_temp.length())
                     m_cursor_pos++;
-            } else if (key == GLFW_KEY_HOME) {
-                if (modifiers == GLFW_MOD_SHIFT) {
+            } else if (key == NANOGUI_KEY_HOME) {
+                if (modifiers == NANOGUI_MOD_SHIFT) {
                     if (m_selection_pos == -1)
                         m_selection_pos = m_cursor_pos;
                 } else {
@@ -431,8 +431,8 @@ bool TextBox::keyboard_event(int key, int /* scancode */, int action, int modifi
                 }
 
                 m_cursor_pos = 0;
-            } else if (key == GLFW_KEY_END) {
-                if (modifiers == GLFW_MOD_SHIFT) {
+            } else if (key == NANOGUI_KEY_END) {
+                if (modifiers == NANOGUI_MOD_SHIFT) {
                     if (m_selection_pos == -1)
                         m_selection_pos = m_cursor_pos;
                 } else {
@@ -440,30 +440,30 @@ bool TextBox::keyboard_event(int key, int /* scancode */, int action, int modifi
                 }
 
                 m_cursor_pos = (int) m_value_temp.size();
-            } else if (key == GLFW_KEY_BACKSPACE) {
+            } else if (key == NANOGUI_KEY_BACKSPACE) {
                 if (!delete_selection()) {
                     if (m_cursor_pos > 0) {
                         m_value_temp.erase(m_value_temp.begin() + m_cursor_pos - 1);
                         m_cursor_pos--;
                     }
                 }
-            } else if (key == GLFW_KEY_DELETE) {
+            } else if (key == NANOGUI_KEY_DELETE) {
                 if (!delete_selection()) {
                     if (m_cursor_pos < (int) m_value_temp.length())
                         m_value_temp.erase(m_value_temp.begin() + m_cursor_pos);
                 }
-            } else if (key == GLFW_KEY_ENTER) {
+            } else if (key == NANOGUI_KEY_ENTER) {
                 if (!m_committed)
                     focus_event(false);
-            } else if (key == GLFW_KEY_A && modifiers == SYSTEM_COMMAND_MOD) {
+            } else if (key == NANOGUI_KEY_A && modifiers == SYSTEM_COMMAND_MOD) {
                 m_cursor_pos = (int) m_value_temp.length();
                 m_selection_pos = 0;
-            } else if (key == GLFW_KEY_X && modifiers == SYSTEM_COMMAND_MOD) {
+            } else if (key == NANOGUI_KEY_X && modifiers == SYSTEM_COMMAND_MOD) {
                 copy_selection();
                 delete_selection();
-            } else if (key == GLFW_KEY_C && modifiers == SYSTEM_COMMAND_MOD) {
+            } else if (key == NANOGUI_KEY_C && modifiers == SYSTEM_COMMAND_MOD) {
                 copy_selection();
-            } else if (key == GLFW_KEY_V && modifiers == SYSTEM_COMMAND_MOD) {
+            } else if (key == NANOGUI_KEY_V && modifiers == SYSTEM_COMMAND_MOD) {
                 delete_selection();
                 paste_from_clipboard();
             }
@@ -522,9 +522,10 @@ bool TextBox::copy_selection() {
 
         if (begin > end)
             std::swap(begin, end);
-
+        #ifndef NANOGUI_NO_GLFW
         glfwSetClipboardString(sc->glfw_window(),
                                m_value_temp.substr(begin, end).c_str());
+        #endif
         return true;
     }
 
@@ -535,9 +536,11 @@ void TextBox::paste_from_clipboard() {
     Screen *sc = screen();
     if (!sc)
         return;
+    #ifndef NANOGUI_NO_GLFW
     const char* cbstr = glfwGetClipboardString(sc->glfw_window());
     if (cbstr)
         m_value_temp.insert(m_cursor_pos, std::string(cbstr));
+    #endif
 }
 
 bool TextBox::delete_selection() {
@@ -566,7 +569,7 @@ void TextBox::update_cursor(NVGcontext *, float lastx,
                            const NVGglyphPosition *glyphs, int size) {
     // handle mouse cursor events
     if (m_mouse_down_pos.x() != -1) {
-        if (m_mouse_down_modifier == GLFW_MOD_SHIFT) {
+        if (m_mouse_down_modifier == NANOGUI_MOD_SHIFT) {
             if (m_selection_pos == -1)
                 m_selection_pos = m_cursor_pos;
         } else

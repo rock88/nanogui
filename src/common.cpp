@@ -23,6 +23,7 @@
 #include <chrono>
 #include <mutex>
 #include <iostream>
+#include <sys/time.h>
 
 #if !defined(_WIN32)
 #  include <locale.h>
@@ -36,11 +37,21 @@
 
 NAMESPACE_BEGIN(nanogui)
 
+#ifndef NANOGUI_NO_GLFW
 extern std::map<GLFWwindow *, Screen *> __nanogui_screens;
+#else
+extern std::vector<Screen *> __nanogui_screens;
+#endif
 
 #if defined(__APPLE__)
   extern void disable_saved_application_state_osx();
 #endif
+
+double getTime() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (tv.tv_sec + (tv.tv_usec/1000000.0)) * 1000.0;
+}
 
 void init() {
     #if !defined(_WIN32)
@@ -52,6 +63,7 @@ void init() {
         disable_saved_application_state_osx();
     #endif
 
+    #ifndef NANOGUI_NO_GLFW
     glfwSetErrorCallback(
         [](int error, const char *descr) {
             if (error == GLFW_NOT_INITIALIZED)
@@ -62,12 +74,15 @@ void init() {
 
     if (!glfwInit())
         throw std::runtime_error("Could not initialize GLFW!");
+    #endif
 
 #if defined(NANOGUI_USE_METAL)
     metal_init();
 #endif
 
+    #ifndef NANOGUI_NO_GLFW
     glfwSetTime(0);
+    #endif
 }
 
 static bool mainloop_active = false;
@@ -79,69 +94,9 @@ static float emscripten_refresh = 0;
 
 std::mutex m_async_mutex;
 std::vector<std::function<void()>> m_async_functions;
+std::thread refresh_thread;
 
-void mainloop(float refresh) {
-    if (mainloop_active)
-        throw std::runtime_error("Main loop is already running!");
-
-    auto mainloop_iteration = []() {
-        int num_screens = 0;
-
-        #if defined(EMSCRIPTEN)
-            double emscripten_now = glfwGetTime();
-            bool emscripten_redraw = false;
-            if (float((emscripten_now - emscripten_last) * 1000) > emscripten_refresh) {
-                emscripten_redraw = true;
-                emscripten_last = emscripten_now;
-            }
-        #endif
-
-        /* Run async functions */ {
-            std::lock_guard<std::mutex> guard(m_async_mutex);
-            for (auto &f : m_async_functions)
-                f();
-            m_async_functions.clear();
-        }
-
-        for (auto kv : __nanogui_screens) {
-            Screen *screen = kv.second;
-            if (!screen->visible()) {
-                continue;
-            } else if (glfwWindowShouldClose(screen->glfw_window())) {
-                screen->set_visible(false);
-                continue;
-            }
-            #if defined(EMSCRIPTEN)
-                if (emscripten_redraw || screen->tooltip_fade_in_progress())
-                    screen->redraw();
-            #endif
-            screen->draw_all();
-            num_screens++;
-        }
-
-        if (num_screens == 0) {
-            /* Give up if there was nothing to draw */
-            mainloop_active = false;
-            return;
-        }
-
-        #if !defined(EMSCRIPTEN)
-            /* Wait for mouse/keyboard or empty refresh events */
-            glfwWaitEvents();
-        #endif
-    };
-
-#if defined(EMSCRIPTEN)
-    emscripten_refresh = refresh;
-    /* The following will throw an exception and enter the main
-       loop within Emscripten. This means that none of the code below
-       (or in the caller, for that matter) will be executed */
-    emscripten_set_main_loop(mainloop_iteration, 0, 1);
-#endif
-
-    mainloop_active = true;
-
-    std::thread refresh_thread;
+void setup_refresh_thread(float refresh) {
     std::chrono::microseconds quantum;
     size_t quantum_count = 1;
     if (refresh >= 0) {
@@ -167,28 +122,156 @@ void mainloop(float refresh) {
                         return;
                     std::this_thread::sleep_for(quantum);
                     for (auto kv : __nanogui_screens) {
+                        #ifndef NANOGUI_NO_GLFW
                         if (kv.second->tooltip_fade_in_progress())
                             kv.second->redraw();
+                        #else
+                        if (kv->tooltip_fade_in_progress())
+                            kv->redraw();
+                        #endif
                     }
                 }
                 for (auto kv : __nanogui_screens)
+                    #ifndef NANOGUI_NO_GLFW
                     kv.second->redraw();
+                    #else
+                    kv->redraw();
+                    #endif
             }
         }
     );
+}
+
+#ifdef NANOGUI_NO_GLFW
+void setup(float refresh) {
+    if (mainloop_active)
+        throw std::runtime_error("Already setup!");
+    
+    mainloop_active = true;
+
+    setup_refresh_thread(refresh);
+}
+
+void draw() {
+    int num_screens = 0;
+
+    /* Run async functions */ {
+        std::lock_guard<std::mutex> guard(m_async_mutex);
+        for (auto &f : m_async_functions)
+            f();
+        m_async_functions.clear();
+    }
+
+    for (auto screen : __nanogui_screens) {
+        if (!screen->visible()) {
+            continue;
+        }
+        
+        screen->draw_all();
+        num_screens++;
+    }
+}
+
+void cursor_pos_callback_event(double x, double y) {
+    for (auto screen : __nanogui_screens)
+        screen->cursor_pos_callback_event(x, y);
+}
+
+void mouse_button_callback_event(int button, int action, int modifiers) {
+    for (auto screen : __nanogui_screens)
+        screen->mouse_button_callback_event(button, action, modifiers);
+}
+
+void scroll_callback_event(double x, double y) {
+    for (auto screen : __nanogui_screens)
+        screen->scroll_callback_event(x, y);
+}
+#endif
+
+void mainloop(float refresh) {
+    if (mainloop_active)
+        throw std::runtime_error("Main loop is already running!");
+
+    auto mainloop_iteration = []() {
+        int num_screens = 0;
+
+        #if defined(EMSCRIPTEN)
+            double emscripten_now = glfwGetTime();
+            bool emscripten_redraw = false;
+            if (float((emscripten_now - emscripten_last) * 1000) > emscripten_refresh) {
+                emscripten_redraw = true;
+                emscripten_last = emscripten_now;
+            }
+        #endif
+
+        /* Run async functions */ {
+            std::lock_guard<std::mutex> guard(m_async_mutex);
+            for (auto &f : m_async_functions)
+                f();
+            m_async_functions.clear();
+        }
+
+        for (auto kv : __nanogui_screens) {
+            #ifndef NANOGUI_NO_GLFW
+            Screen *screen = kv.second;
+            #else
+            Screen *screen = kv;
+            #endif
+            if (!screen->visible()) {
+                continue;
+            }
+            #ifndef NANOGUI_NO_GLFW
+            else if (glfwWindowShouldClose(screen->glfw_window())) {
+                screen->set_visible(false);
+                continue;
+            }
+            #endif
+            #if defined(EMSCRIPTEN)
+                if (emscripten_redraw || screen->tooltip_fade_in_progress())
+                    screen->redraw();
+            #endif
+            screen->draw_all();
+            num_screens++;
+        }
+
+        if (num_screens == 0) {
+            /* Give up if there was nothing to draw */
+            mainloop_active = false;
+            return;
+        }
+
+        #if !defined(EMSCRIPTEN)
+            #ifndef NANOGUI_NO_GLFW
+            /* Wait for mouse/keyboard or empty refresh events */
+            glfwWaitEvents();
+            #endif
+        #endif
+    };
+
+#if defined(EMSCRIPTEN)
+    emscripten_refresh = refresh;
+    /* The following will throw an exception and enter the main
+       loop within Emscripten. This means that none of the code below
+       (or in the caller, for that matter) will be executed */
+    emscripten_set_main_loop(mainloop_iteration, 0, 1);
+#endif
+
+    mainloop_active = true;
+
+    setup_refresh_thread(refresh);
 
     try {
         while (mainloop_active)
             mainloop_iteration();
 
+        #ifndef NANOGUI_NO_GLFW
         /* Process events once more */
         glfwPollEvents();
+        #endif
     } catch (const std::exception &e) {
         std::cerr << "Caught exception in main loop: " << e.what() << std::endl;
         leave();
     }
-
-    refresh_thread.join();
 }
 
 void async(const std::function<void()> &func) {
@@ -205,7 +288,11 @@ bool active() {
 }
 
 void shutdown() {
+    refresh_thread.join();
+    
+    #ifndef NANOGUI_NO_GLFW
     glfwTerminate();
+    #endif
 
 #if defined(NANOGUI_USE_METAL)
     metal_shutdown();

@@ -183,8 +183,10 @@ public:
     /// Return the last observed mouse position value
     Vector2i mouse_pos() const { return m_mouse_pos; }
 
+    #ifndef NANOGUI_NO_GLFW
     /// Return a pointer to the underlying GLFW window data structure
     GLFWwindow *glfw_window() const { return m_glfw_window; }
+    #endif
 
     /// Return a pointer to the underlying NanoVG draw context
     NVGcontext *nvg_context() const { return m_nvg_context; }
@@ -250,7 +252,11 @@ public:
     Screen();
 
     /// Initialize the \ref Screen
-    void initialize(GLFWwindow *window, bool shutdown_glfw);
+    void initialize(
+        #ifndef NANOGUI_NO_GLFW
+        GLFWwindow *window, bool shutdown_glfw
+        #endif
+        );
 
     /* Event handlers */
     void cursor_pos_callback_event(double x, double y);
@@ -269,9 +275,11 @@ public:
     void draw_widgets();
 
 protected:
+    #ifndef NANOGUI_NO_GLFW
     GLFWwindow *m_glfw_window = nullptr;
-    NVGcontext *m_nvg_context = nullptr;
     GLFWcursor *m_cursors[(size_t) Cursor::CursorCount];
+    #endif
+    NVGcontext *m_nvg_context = nullptr;
     Cursor m_cursor;
     std::vector<Widget *> m_focus_path;
     Vector2i m_fbsize;

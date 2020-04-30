@@ -63,7 +63,7 @@ void TextArea::clear() {
 
 bool TextArea::keyboard_event(int key, int /* scancode */, int action, int modifiers) {
     if (m_selectable && focused()) {
-        if (key == GLFW_KEY_C && modifiers == SYSTEM_COMMAND_MOD && action == GLFW_PRESS &&
+        if (key == NANOGUI_KEY_C && modifiers == SYSTEM_COMMAND_MOD && action == NANOGUI_PRESS &&
             m_selection_start != -1 && m_selection_end != -1) {
             Vector2i start = m_selection_start, end = m_selection_end;
             if (start.x() > end.x() || (start.x() == end.x() && start.y() > end.y()))
@@ -91,7 +91,10 @@ bool TextArea::keyboard_event(int key, int /* scancode */, int action, int modif
                 else
                     str += m_blocks[i].text;
             }
+
+            #ifndef NANOGUI_NO_GLFW
             glfwSetClipboardString(screen()->glfw_window(), str.c_str());
+            #endif
             return true;
         }
     }
@@ -203,7 +206,7 @@ void TextArea::draw(NVGcontext *ctx) {
 
 bool TextArea::mouse_button_event(const Vector2i &p, int button, bool down,
                                   int /* modifiers */) {
-    if (down && button == GLFW_MOUSE_BUTTON_1 && m_selectable) {
+    if (down && button == NANOGUI_MOUSE_BUTTON_1 && m_selectable) {
         m_selection_start = m_selection_end =
             position_to_block(p - m_pos - m_padding);
         request_focus();

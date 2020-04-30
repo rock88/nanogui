@@ -221,7 +221,7 @@ public:
         if (TextBox::mouse_drag_event(p, rel, button, modifiers))
             return true;
 
-        if (m_spinnable && !focused() && button == 2 /* 1 << GLFW_MOUSE_BUTTON_2 */ &&
+        if (m_spinnable && !focused() && button == 2 /* 1 << NANOGUI_MOUSE_BUTTON_2 */ &&
             m_mouse_down_pos.x() != -1) {
             int value_delta = static_cast<int>((p.x() - m_mouse_down_pos.x()) / float(10));
             set_value(m_mouse_down_value + value_delta * m_value_increment);
@@ -340,7 +340,7 @@ public:
         if (TextBox::mouse_drag_event(p, rel, button, modifiers))
             return true;
 
-        if (m_spinnable && !focused() && button == 2 /* 1 << GLFW_MOUSE_BUTTON_2 */ &&
+        if (m_spinnable && !focused() && button == 2 /* 1 << NANOGUI_MOUSE_BUTTON_2 */ &&
             m_mouse_down_pos.x() != -1) {
             int value_delta = static_cast<int>((p.x() - m_mouse_down_pos.x()) / float(10));
             set_value(m_mouse_down_value + value_delta * m_value_increment);

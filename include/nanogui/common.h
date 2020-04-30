@@ -104,21 +104,25 @@
 extern "C" {
     /* Opaque handle types */
     typedef struct NVGcontext NVGcontext;
+    #ifndef NANOGUI_NO_GLFW
     typedef struct GLFWwindow GLFWwindow;
+    #endif
 };
 
 struct NVGcolor;
 struct NVGglyphPosition;
+#ifndef NANOGUI_NO_GLFW
 struct GLFWcursor;
+#endif
 
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
 // Define command key for windows/mac/linux
 #if defined(__APPLE__) || defined(DOXYGEN_DOCUMENTATION_BUILD)
     /// If on OSX, maps to ``GLFW_MOD_SUPER``.  Otherwise, maps to ``GLFW_MOD_CONTROL``.
-    #define SYSTEM_COMMAND_MOD GLFW_MOD_SUPER
+    #define SYSTEM_COMMAND_MOD NANOGUI_MOD_SUPER
 #else
-    #define SYSTEM_COMMAND_MOD GLFW_MOD_CONTROL
+    #define SYSTEM_COMMAND_MOD NANOGUI_MOD_CONTROL
 #endif
 
 NAMESPACE_BEGIN(nanogui)
@@ -180,6 +184,7 @@ class Window;
 
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
+extern NANOGUI_EXPORT double getTime();
 /**
  * Static initialization; should be called once before invoking **any** NanoGUI
  * functions **if** you are having NanoGUI manage OpenGL / GLFW.  This method
@@ -232,8 +237,17 @@ extern NANOGUI_EXPORT void shutdown();
  *     wait for the termination of the main loop and then swap the two thread
  *     environments back into their initial configuration.
  */
-extern NANOGUI_EXPORT void mainloop(float refresh = -1.f);
 
+#ifdef NANOGUI_NO_GLFW
+extern NANOGUI_EXPORT void setup(float refresh = -1.f);
+extern NANOGUI_EXPORT void draw();
+
+extern NANOGUI_EXPORT void cursor_pos_callback_event(double x, double y);
+extern NANOGUI_EXPORT void mouse_button_callback_event(int button, int action, int modifiers);
+extern NANOGUI_EXPORT void scroll_callback_event(double x, double y);
+#else
+extern NANOGUI_EXPORT void mainloop(float refresh = -1.f);
+#endif
 /// Request the application main loop to terminate (e.g. if you detached mainloop).
 extern NANOGUI_EXPORT void leave();
 
