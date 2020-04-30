@@ -48,6 +48,9 @@ extern std::vector<Screen *> __nanogui_screens;
 #endif
 
 double getTime() {
+    #ifndef NANOGUI_NO_GLFW
+    return glfwGetTime();
+    #endif
     struct timeval tv;
     gettimeofday(&tv, NULL);
     return (tv.tv_sec + (tv.tv_usec/1000000.0)) * 1000.0;
