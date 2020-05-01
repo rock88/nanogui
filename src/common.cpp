@@ -62,11 +62,11 @@ void init() {
         setlocale(LC_NUMERIC, "C");
     #endif
 
+    #ifndef NANOGUI_NO_GLFW
     #if defined(__APPLE__)
         disable_saved_application_state_osx();
     #endif
 
-    #ifndef NANOGUI_NO_GLFW
     glfwSetErrorCallback(
         [](int error, const char *descr) {
             if (error == GLFW_NOT_INITIALIZED)
@@ -381,8 +381,12 @@ load_image_directory(NVGcontext *ctx, const std::string &path) {
 }
 
 std::string file_dialog(const std::vector<std::pair<std::string, std::string>> &filetypes, bool save) {
+    #ifndef NANOGUI_NO_GLFW
     auto result = file_dialog(filetypes, save, false);
     return result.empty() ? "" : result.front();
+    #else
+    return "";
+    #endif
 }
 
 #if !defined(__APPLE__)
