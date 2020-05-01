@@ -76,6 +76,9 @@ public:
      */
     Screen(
         const Vector2i &size,
+        #ifdef NANOGUI_NO_GLFW
+        const Vector2i &framebuffer_size,
+        #endif
         const std::string &caption = "Unnamed",
         bool resizable = true,
         bool fullscreen = false,

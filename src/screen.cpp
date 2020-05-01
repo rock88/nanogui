@@ -187,7 +187,11 @@ Screen::Screen()
 }
 #endif
 
-Screen::Screen(const Vector2i &size, const std::string &caption, bool resizable,
+Screen::Screen(const Vector2i &size,
+               #ifdef NANOGUI_NO_GLFW
+               const Vector2i &framebuffer_size,
+               #endif
+               const std::string &caption, bool resizable,
                bool fullscreen, bool depth_buffer, bool stencil_buffer,
                bool float_buffer, unsigned int gl_major, unsigned int gl_minor)
     : Widget(nullptr),
@@ -202,10 +206,7 @@ Screen::Screen(const Vector2i &size, const std::string &caption, bool resizable,
     memset(m_cursors, 0, sizeof(GLFWcursor *) * (int) Cursor::CursorCount);
     #else
     m_size = size;
-    m_fbsize = size;
-    #if __APPLE__
-    m_fbsize = m_fbsize * 2;
-    #endif
+    m_fbsize = framebuffer_size;
     #endif
 
 #ifndef NANOGUI_NO_GLFW
