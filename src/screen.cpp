@@ -512,9 +512,11 @@ void Screen::initialize(
     m_fbsize = Vector2i((int) w2, (int) h2);
     m_size = Vector2i((int) w, (int) h);
 #elif defined(_WIN32) || defined(__linux__)
+    #ifndef NANOGUI_NO_GLFW
     if (m_pixel_ratio != 1 && !m_fullscreen)
         glfwSetWindowSize(window, m_size.x() * m_pixel_ratio,
                                   m_size.y() * m_pixel_ratio);
+    #endif
 #endif
 
 #if defined(NANOGUI_GLAD)
@@ -629,7 +631,7 @@ void Screen::set_caption(const std::string &caption) {
 
 void Screen::set_size(const Vector2i &size) {
     Widget::set_size(size);
-
+#ifndef NANOGUI_NO_GLFW
 #if defined(_WIN32) || defined(__linux__) || defined(EMSCRIPTEN)
     glfwSetWindowSize(m_glfw_window, size.x() * m_pixel_ratio,
                                      size.y() * m_pixel_ratio);
@@ -637,6 +639,7 @@ void Screen::set_size(const Vector2i &size) {
     #ifndef NANOGUI_NO_GLFW
     glfwSetWindowSize(m_glfw_window, size.x(), size.y());
     #endif
+#endif
 #endif
 }
 
