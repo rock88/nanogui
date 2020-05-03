@@ -242,6 +242,7 @@ extern NANOGUI_EXPORT void shutdown();
 extern NANOGUI_EXPORT void setup(float refresh = -1.f);
 extern NANOGUI_EXPORT void draw();
 
+extern NANOGUI_EXPORT void keyboard_event(int key, int scancode, int action, int modifiers);
 extern NANOGUI_EXPORT void cursor_pos_callback_event(double x, double y);
 extern NANOGUI_EXPORT void mouse_button_callback_event(int button, int action, int modifiers);
 extern NANOGUI_EXPORT void scroll_callback_event(double x, double y);

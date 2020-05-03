@@ -176,6 +176,11 @@ void draw() {
     }
 }
 
+void keyboard_event(int key, int scancode, int action, int modifiers) {
+    for (auto screen : __nanogui_screens)
+        screen->keyboard_event(key, scancode, action, modifiers);
+}
+
 void cursor_pos_callback_event(double x, double y) {
     for (auto screen : __nanogui_screens)
         screen->cursor_pos_callback_event(x, y);
