@@ -31,6 +31,7 @@ class NANOGUI_EXPORT PopupButton : public Button {
 public:
     PopupButton(Widget *parent, const std::string &caption = "Untitled",
                 int button_icon = 0);
+    virtual ~PopupButton();
 
     void set_chevron_icon(int icon) { m_chevron_icon = icon; }
     int chevron_icon() const { return m_chevron_icon; }
