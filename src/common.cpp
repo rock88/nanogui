@@ -128,9 +128,6 @@ void setup_refresh_thread(float refresh) {
                         #ifndef NANOGUI_NO_GLFW
                         if (kv.second->tooltip_fade_in_progress())
                             kv.second->redraw();
-                        #else
-                        if (kv->tooltip_fade_in_progress())
-                            kv->redraw();
                         #endif
                     }
                 }
