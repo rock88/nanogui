@@ -10,6 +10,11 @@ NAMESPACE_BEGIN(nanogui)
 #  define GL_STACK_UNDERFLOW 0x0504
 #endif
 
+/// Allows for conversion between nanogui::Color and the NanoVG NVGcolor class.
+Color::operator const NVGcolor &() const {
+    return reinterpret_cast<const NVGcolor &>(*(this->v));
+}
+
 bool nanogui_check_glerror(const char *cmd) {
     GLenum err = glGetError();
     const char *msg = nullptr;

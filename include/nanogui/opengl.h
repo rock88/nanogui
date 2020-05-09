@@ -71,6 +71,8 @@
 #if __APPLE__
 #include <OpenGL/gl3.h>
 #include <OpenGL/gl3ext.h>
+#elif __SWITCH__
+#include <glad/glad.h>
 #else
 #include <GL/gl.h>
 #include <GL/glext.h>
@@ -124,11 +126,6 @@
 #endif
 
 NAMESPACE_BEGIN(nanogui)
-
-/// Allows for conversion between nanogui::Color and the NanoVG NVGcolor class.
-inline Color::operator const NVGcolor &() const {
-    return reinterpret_cast<const NVGcolor &>(*(this->v));
-}
 
 /**
  * \brief Determine whether an icon ID is a texture loaded via ``nvg_image_icon``.

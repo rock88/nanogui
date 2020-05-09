@@ -140,7 +140,9 @@ void setup_refresh_thread(float refresh) {
             }
         }
     );
+    #ifndef __SWITCH__
     refresh_thread.detach();
+    #endif
 }
 
 #ifdef NANOGUI_NO_GLFW
