@@ -97,9 +97,56 @@ static float emscripten_refresh = 0;
 
 std::mutex m_async_mutex;
 std::vector<std::function<void()>> m_async_functions;
+
+#ifdef __SWITCH__
+#include <switch.h>
+static Thread thread;
+#else
 std::thread refresh_thread;
+#endif
 
 void setup_refresh_thread(float refresh) {
+    /* If there are no mouse/keyboard events, try to refresh the
+       view roughly every 50 ms (default); this is to support animations
+       such as progress bars while keeping the system load
+       reasonably low */
+    #ifdef __SWITCH__
+    static float _refresh;
+    _refresh = refresh;
+    threadCreate(
+        &thread,
+        [](void* a) {
+            std::chrono::microseconds quantum;
+            size_t quantum_count = 1;
+            if (_refresh >= 0) {
+                quantum = std::chrono::microseconds((int64_t)(_refresh * 1'000));
+                while (quantum.count() > 50'000) {
+                    quantum /= 2;
+                    quantum_count *= 2;
+                }
+            } else {
+                quantum = std::chrono::microseconds(50'000);
+                quantum_count = std::numeric_limits<size_t>::max();
+            }
+        
+            while (true) {
+                for (size_t i = 0; i < quantum_count; ++i) {
+                    if (!mainloop_active)
+                        return;
+                    std::this_thread::sleep_for(quantum);
+                }
+                for (auto kv : __nanogui_screens)
+                    kv->redraw();
+            }
+        },
+        NULL,
+        NULL,
+        0x10000,
+        0x2C,
+        -2
+    );
+    threadStart(&thread);
+    #else
     std::chrono::microseconds quantum;
     size_t quantum_count = 1;
     if (refresh >= 0) {
@@ -112,11 +159,7 @@ void setup_refresh_thread(float refresh) {
         quantum = std::chrono::microseconds(50'000);
         quantum_count = std::numeric_limits<size_t>::max();
     }
-
-    /* If there are no mouse/keyboard events, try to refresh the
-       view roughly every 50 ms (default); this is to support animations
-       such as progress bars while keeping the system load
-       reasonably low */
+    
     refresh_thread = std::thread(
         [quantum, quantum_count]() {
             while (true) {
@@ -140,7 +183,6 @@ void setup_refresh_thread(float refresh) {
             }
         }
     );
-    #ifndef __SWITCH__
     refresh_thread.detach();
     #endif
 }
@@ -296,7 +338,11 @@ bool active() {
 }
 
 void shutdown() {
+    #ifdef __SWITCH__
+    threadWaitForExit(&thread);
+    #else
     refresh_thread.join();
+    #endif
     
     #ifndef NANOGUI_NO_GLFW
     glfwTerminate();
