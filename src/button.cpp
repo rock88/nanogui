@@ -18,9 +18,11 @@ NAMESPACE_BEGIN(nanogui)
 
 Button::Button(Widget *parent, const std::string &caption, int icon)
     : Widget(parent), m_caption(caption), m_icon(icon),
-      m_icon_position(IconPosition::LeftCentered), m_pushed(false),
-      m_flags(NormalButton), m_background_color(Color(0, 0)),
-      m_text_color(Color(0, 0)) { }
+    m_icon_position(IconPosition::LeftCentered), m_pushed(false),
+    m_flags(NormalButton), m_background_color(Color(0, 0)),
+    m_text_color(Color(0, 0)) {
+    m_selectable = true;
+}
 
 Vector2i Button::preferred_size(NVGcontext *ctx) const {
     int font_size = m_font_size == -1 ? m_theme->m_button_font_size : m_font_size;

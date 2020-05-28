@@ -67,6 +67,10 @@ public:
             (parent()->absolute_position() + m_pos) : m_pos;
     }
 
+    Vector2i center() const {
+        return absolute_position() + m_size / 2;
+    }
+
     /// Return the size of the widget
     const Vector2i &size() const { return m_size; }
     /// set the size of the widget
@@ -176,10 +180,16 @@ public:
     /// Set whether or not this widget is currently enabled
     void set_enabled(bool enabled) { m_enabled = enabled; }
 
+    bool selected() const { return m_selected; }
+    void set_selected(bool selected) { m_selected = selected; }
+
     /// Return whether or not this widget is currently focused
     bool focused() const { return m_focused; }
     /// Set whether or not this widget is currently focused
     void set_focused(bool focused) { m_focused = focused; }
+    /// Whether contained widgets will be affected by gamepad inputs
+    bool selectable() const { return m_selectable; }
+    void set_selectable(bool container) { m_selectable = container; }
     /// Request the focus to be moved to this widget
     void request_focus();
 
@@ -244,6 +254,10 @@ public:
 
     /// Handle text input (UTF-32 format) (default implementation: do nothing)
     virtual bool keyboard_character_event(unsigned int codepoint);
+    
+    virtual bool gamepad_button_event(int jid, int button, int action);
+    
+    virtual bool gamepad_analog_event(int jid, int axis, float value);
 
     /// Compute the preferred size of the widget
     virtual Vector2i preferred_size(NVGcontext *ctx) const;
@@ -290,6 +304,7 @@ protected:
      */
     bool m_enabled;
     bool m_focused, m_mouse_focus;
+    bool m_selectable, m_selected;
     std::string m_tooltip;
     int m_font_size;
 

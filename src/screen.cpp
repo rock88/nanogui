@@ -998,6 +998,18 @@ void Screen::resize_callback_event(int, int) {
     redraw();
 }
 
+void Screen::gamepad_button_callback_event(int jid, int button, int action) {
+    for (int i = 0; i < m_children.size(); i++) {
+        m_children[i]->gamepad_button_event(jid, button, action);
+    }
+}
+
+void Screen::gamepad_analog_callback_event(int jid, int axis, float value) {
+    for (int i = 0; i < m_children.size(); i++) {
+        m_children[i]->gamepad_analog_event(jid, axis, value);
+    }
+}
+
 void Screen::update_focus(Widget *widget) {
     for (auto w: m_focus_path) {
         if (!w->focused())

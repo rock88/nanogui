@@ -27,7 +27,7 @@ Widget::Widget(Widget *parent)
     : m_parent(nullptr), m_theme(nullptr), m_layout(nullptr),
       m_pos(0), m_size(0), m_fixed_size(0), m_visible(true), m_enabled(true),
       m_focused(false), m_mouse_focus(false), m_tooltip(""), m_font_size(-1.f),
-      m_icon_extra_scale(1.f), m_cursor(Cursor::Arrow) {
+      m_icon_extra_scale(1.f), m_cursor(Cursor::Arrow), m_selected(false), m_selectable(false) {
     if (parent)
         parent->add_child(this);
 }
@@ -164,6 +164,14 @@ bool Widget::keyboard_character_event(unsigned int) {
     return false;
 }
 
+bool Widget::gamepad_button_event(int jid, int button, int action) {
+    return false;
+}
+
+bool Widget::gamepad_analog_event(int jid, int axis, float value) {
+    return false;
+}
+
 void Widget::add_child(int index, Widget * widget) {
     assert(index <= child_count());
     m_children.insert(m_children.begin() + index, widget);
@@ -238,11 +246,18 @@ void Widget::draw(NVGcontext *ctx) {
     #if defined(NANOGUI_SHOW_WIDGET_BOUNDS)
         nvgStrokeWidth(ctx, 1.0f);
         nvgBeginPath(ctx);
-        nvgRect(ctx, m_pos.x() - 0.5f, m_pos.y() - 0.5f,
-                m_size.x() + 1, m_size.y() + 1);
+        nvgRect(ctx, m_pos.x() - 0.5f, m_pos.y() - 0.5f, m_size.x() + 1, m_size.y() + 1);
         nvgStrokeColor(ctx, nvgRGBA(255, 0, 0, 255));
         nvgStroke(ctx);
     #endif
+    
+    if (m_selected) {
+        nvgStrokeWidth(ctx, 6);
+        nvgBeginPath(ctx);
+        nvgRoundedRect(ctx, m_pos.x() + 2, m_pos.y() + 2, m_size.x() - 4, m_size.y() + - 4, 4);
+        nvgStrokeColor(ctx, nvgRGBA(62, 78, 184, 200));
+        nvgStroke(ctx);
+    }
 
     if (m_children.empty())
         return;

@@ -246,6 +246,8 @@ extern NANOGUI_EXPORT void keyboard_event(int key, int scancode, int action, int
 extern NANOGUI_EXPORT void cursor_pos_callback_event(double x, double y);
 extern NANOGUI_EXPORT void mouse_button_callback_event(int button, int action, int modifiers);
 extern NANOGUI_EXPORT void scroll_callback_event(double x, double y);
+extern NANOGUI_EXPORT void gamepad_button_callback_event(int jid, int button, int action);
+extern NANOGUI_EXPORT void gamepad_analog_callback_event(int jid, int axis, float value);
 #else
 extern NANOGUI_EXPORT void mainloop(float refresh = -1.f);
 #endif

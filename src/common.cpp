@@ -236,6 +236,16 @@ void scroll_callback_event(double x, double y) {
     for (auto screen : __nanogui_screens)
         screen->scroll_callback_event(x, y);
 }
+
+void gamepad_button_callback_event(int jid, int button, int action) {
+    for (auto screen : __nanogui_screens)
+        screen->gamepad_button_callback_event(jid, button, action);
+}
+
+void gamepad_analog_callback_event(int jid, int axis, float value) {
+    for (auto screen : __nanogui_screens)
+        screen->gamepad_analog_callback_event(jid, axis, value);
+}
 #endif
 
 void mainloop(float refresh) {

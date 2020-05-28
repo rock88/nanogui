@@ -269,6 +269,9 @@ public:
     void drop_callback_event(int count, const char **filenames);
     void scroll_callback_event(double x, double y);
     void resize_callback_event(int width, int height);
+    
+    virtual void gamepad_button_callback_event(int jid, int button, int action);
+    virtual void gamepad_analog_callback_event(int jid, int axis, float value);
 
     /* Internal helper functions */
     void update_focus(Widget *widget);
