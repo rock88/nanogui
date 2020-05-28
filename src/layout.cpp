@@ -279,7 +279,7 @@ void GridLayout::perform_layout(NVGcontext *ctx, Widget *widget) const {
         if (grid_size < container_size[i]) {
             /* Re-distribute remaining space evenly */
             int gap = container_size[i] - grid_size;
-            int g = gap / dim[i];
+            int g = gap / (dim[i] ?: 1);
             int rest = gap - g * dim[i];
             for (int j = 0; j < dim[i]; ++j)
                 grid[i][j] += g;
