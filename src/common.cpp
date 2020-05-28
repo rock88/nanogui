@@ -88,7 +88,7 @@ void init() {
     #endif
 }
 
-static bool mainloop_active = false;
+static volatile bool mainloop_active = false;
 
 #if defined(EMSCRIPTEN)
 static double emscripten_last = 0;
@@ -100,53 +100,12 @@ std::vector<std::function<void()>> m_async_functions;
 
 #ifdef __SWITCH__
 #include <switch.h>
-static Thread thread;
+static Thread refresh_thread;
 #else
 std::thread refresh_thread;
 #endif
 
-void setup_refresh_thread(float refresh) {
-    /* If there are no mouse/keyboard events, try to refresh the
-       view roughly every 50 ms (default); this is to support animations
-       such as progress bars while keeping the system load
-       reasonably low */
-    #ifdef __SWITCH__
-    static float _refresh;
-    _refresh = refresh;
-    threadCreate(
-        &thread,
-        [](void* a) {
-            std::chrono::microseconds quantum;
-            size_t quantum_count = 1;
-            if (_refresh >= 0) {
-                quantum = std::chrono::microseconds((int64_t)(_refresh * 1'000));
-                while (quantum.count() > 50'000) {
-                    quantum /= 2;
-                    quantum_count *= 2;
-                }
-            } else {
-                quantum = std::chrono::microseconds(50'000);
-                quantum_count = std::numeric_limits<size_t>::max();
-            }
-        
-            while (true) {
-                for (size_t i = 0; i < quantum_count; ++i) {
-                    if (!mainloop_active)
-                        return;
-                    std::this_thread::sleep_for(quantum);
-                }
-                for (auto kv : __nanogui_screens)
-                    kv->redraw();
-            }
-        },
-        NULL,
-        NULL,
-        0x10000,
-        0x2C,
-        -2
-    );
-    threadStart(&thread);
-    #else
+void refresh_thread_loop(float refresh) {
     std::chrono::microseconds quantum;
     size_t quantum_count = 1;
     if (refresh >= 0) {
@@ -160,27 +119,53 @@ void setup_refresh_thread(float refresh) {
         quantum_count = std::numeric_limits<size_t>::max();
     }
     
-    refresh_thread = std::thread(
-        [quantum, quantum_count]() {
-            while (true) {
-                for (size_t i = 0; i < quantum_count; ++i) {
-                    if (!mainloop_active)
-                        return;
-                    std::this_thread::sleep_for(quantum);
-                    for (auto kv : __nanogui_screens) {
-                        #ifndef NANOGUI_NO_GLFW
-                        if (kv.second->tooltip_fade_in_progress())
-                            kv.second->redraw();
-                        #endif
-                    }
-                }
-                for (auto kv : __nanogui_screens)
-                    #ifndef NANOGUI_NO_GLFW
+    while (mainloop_active) {
+        for (size_t i = 0; i < quantum_count; ++i) {
+            if (!mainloop_active)
+                return;
+            std::this_thread::sleep_for(quantum);
+            for (auto kv : __nanogui_screens) {
+                #ifndef NANOGUI_NO_GLFW
+                if (kv.second->tooltip_fade_in_progress()) {
                     kv.second->redraw();
-                    #else
-                    kv->redraw();
-                    #endif
+                }
+                #endif
             }
+        }
+        for (auto kv : __nanogui_screens) {
+            #ifndef NANOGUI_NO_GLFW
+            kv.second->redraw();
+            #else
+            kv->redraw();
+            #endif
+        }
+    }
+}
+
+void setup_refresh_thread(float refresh) {
+    /* If there are no mouse/keyboard events, try to refresh the
+       view roughly every 50 ms (default); this is to support animations
+       such as progress bars while keeping the system load
+       reasonably low */
+    #ifdef __SWITCH__
+    static float _refresh;
+    _refresh = refresh;
+    threadCreate(
+        &refresh_thread,
+        [](void* a) {
+            refresh_thread_loop(_refresh);
+        },
+        NULL,
+        NULL,
+        0x10000,
+        0x2C,
+        -2
+    );
+    threadStart(&refresh_thread);
+    #else
+    refresh_thread = std::thread(
+        [refresh]() {
+            refresh_thread_loop(refresh);
         }
     );
     refresh_thread.detach();
@@ -349,7 +334,8 @@ bool active() {
 
 void shutdown() {
     #ifdef __SWITCH__
-    threadWaitForExit(&thread);
+    threadWaitForExit(&refresh_thread);
+    threadClose(&refresh_thread);
     #else
     refresh_thread.join();
     #endif
