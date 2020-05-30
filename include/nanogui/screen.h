@@ -268,8 +268,12 @@ public:
     void char_callback_event(unsigned int codepoint);
     void drop_callback_event(int count, const char **filenames);
     void scroll_callback_event(double x, double y);
-    void resize_callback_event(int width, int height);
     
+    #ifndef NANOGUI_NO_GLFW
+    void resize_callback_event(int width, int height);
+    #else
+    virtual void resize_callback_event(int width, int height, int fb_width, int fb_height);
+    #endif
     virtual void gamepad_button_callback_event(int jid, int button, int action);
     virtual void gamepad_analog_callback_event(int jid, int axis, float value);
 

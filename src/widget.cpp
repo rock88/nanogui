@@ -241,7 +241,7 @@ void Widget::request_focus() {
         widget = widget->parent();
     ((Screen *) widget)->update_focus(this);
 }
-
+#define NANOGUI_SHOW_WIDGET_BOUNDS
 void Widget::draw(NVGcontext *ctx) {
     #if defined(NANOGUI_SHOW_WIDGET_BOUNDS)
         nvgStrokeWidth(ctx, 1.0f);

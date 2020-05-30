@@ -965,19 +965,17 @@ void Screen::scroll_callback_event(double x, double y) {
         std::cerr << "Caught exception in event handler: " << e.what() << std::endl;
     }
 }
-
+#ifndef NANOGUI_NO_GLFW
 void Screen::resize_callback_event(int, int) {
 #if defined(EMSCRIPTEN)
     return;
 #endif
-    #ifndef NANOGUI_NO_GLFW
     Vector2i fb_size, size;
     glfwGetFramebufferSize(m_glfw_window, &fb_size[0], &fb_size[1]);
     glfwGetWindowSize(m_glfw_window, &size[0], &size[1]);
     if (fb_size == Vector2i(0, 0) || size == Vector2i(0, 0))
         return;
     m_fbsize = fb_size; m_size = size;
-    #endif
 
 #if defined(_WIN32) || defined(__linux__) || defined(EMSCRIPTEN)
     m_size = Vector2i(Vector2f(m_size) / m_pixel_ratio);
@@ -997,6 +995,25 @@ void Screen::resize_callback_event(int, int) {
     }
     redraw();
 }
+#else
+void Screen::resize_callback_event(int width, int height, int fb_width, int fb_height) {
+    Vector2i fb_size = Vector2i(fb_width, fb_height);
+    Vector2i size = Vector2i(width, height);
+    
+    if (fb_size == Vector2i(0, 0) || size == Vector2i(0, 0))
+        return;
+    m_fbsize = fb_size; m_size = size;
+    
+    m_last_interaction = getTime();
+    
+    try {
+        resize_event(m_size);
+    } catch (const std::exception &e) {
+        std::cerr << "Caught exception in event handler: " << e.what() << std::endl;
+    }
+    redraw();
+}
+#endif
 
 void Screen::gamepad_button_callback_event(int jid, int button, int action) {
     for (int i = 0; i < m_children.size(); i++) {

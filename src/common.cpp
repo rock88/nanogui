@@ -202,7 +202,13 @@ void draw() {
     }
 }
 
-void keyboard_event(int key, int scancode, int action, int modifiers) {
+void window_resize_callback_event(int width, int height, int fb_width, int fb_height) {
+    for (auto screen : __nanogui_screens) {
+        screen->resize_callback_event(width, height, fb_width, fb_height);
+    }
+}
+
+void keyboard_callback_event(int key, int scancode, int action, int modifiers) {
     for (auto screen : __nanogui_screens)
         screen->keyboard_event(key, scancode, action, modifiers);
 }
