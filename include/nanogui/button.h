@@ -111,6 +111,7 @@ public:
     /// The callback that is called when any type of mouse button event is issued to this Button.
     virtual bool mouse_enter_event(const Vector2i &p, bool enter) override;
     virtual bool mouse_button_event(const Vector2i &p, int button, bool down, int modifiers) override;
+    virtual bool gamepad_button_event(int jid, int button, int action) override;
     /// Responsible for drawing the Button.
     virtual void draw(NVGcontext *ctx) override;
 protected:

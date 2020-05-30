@@ -113,6 +113,15 @@ bool Button::mouse_button_event(const Vector2i &p, int button, bool down, int mo
     return false;
 }
 
+bool Button::gamepad_button_event(int jid, int button, int action) {
+    if (action && button == NANOGUI_GAMEPAD_BUTTON_A) {
+        mouse_button_event(position() + size() / 2, NANOGUI_MOUSE_BUTTON_1, NANOGUI_PRESS, 0);
+        mouse_button_event(position() + size() / 2, NANOGUI_MOUSE_BUTTON_1, NANOGUI_RELEASE, 0);
+        return true;
+    }
+    return false;
+}
+
 void Button::draw(NVGcontext *ctx) {
     Widget::draw(ctx);
 

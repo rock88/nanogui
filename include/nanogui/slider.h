@@ -28,6 +28,9 @@ public:
     float value() const { return m_value; }
     void set_value(float value) { m_value = value; }
 
+    float step() const { return m_step; }
+    void set_step(float step) { m_step = step; }
+
     const Color &highlight_color() const { return m_highlight_color; }
     void set_highlight_color(const Color &highlight_color) { m_highlight_color = highlight_color; }
 
@@ -46,10 +49,12 @@ public:
     virtual Vector2i preferred_size(NVGcontext *ctx) const override;
     virtual bool mouse_drag_event(const Vector2i &p, const Vector2i &rel, int button, int modifiers) override;
     virtual bool mouse_button_event(const Vector2i &p, int button, bool down, int modifiers) override;
+    virtual bool gamepad_button_event(int jid, int button, int action) override;
     virtual void draw(NVGcontext* ctx) override;
 
 protected:
     float m_value;
+    float m_step;
     std::function<void(float)> m_callback;
     std::function<void(float)> m_final_callback;
     std::pair<float, float> m_range;

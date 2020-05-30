@@ -20,6 +20,7 @@ CheckBox::CheckBox(Widget *parent, const std::string &caption,
     : Widget(parent), m_caption(caption), m_pushed(false), m_checked(false),
       m_callback(callback) {
     m_icon_extra_scale = 1.2f; // widget override
+    m_selectable = true;
 }
 
 bool CheckBox::mouse_button_event(const Vector2i &p, int button, bool down,
@@ -39,6 +40,15 @@ bool CheckBox::mouse_button_event(const Vector2i &p, int button, bool down,
             }
             m_pushed = false;
         }
+        return true;
+    }
+    return false;
+}
+
+bool CheckBox::gamepad_button_event(int jid, int button, int action) {
+    if (action && button == NANOGUI_GAMEPAD_BUTTON_A) {
+        mouse_button_event(position() + size() / 2, NANOGUI_MOUSE_BUTTON_1, NANOGUI_PRESS, 0);
+        mouse_button_event(position() + size() / 2, NANOGUI_MOUSE_BUTTON_1, NANOGUI_RELEASE, 0);
         return true;
     }
     return false;

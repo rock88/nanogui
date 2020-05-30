@@ -27,7 +27,7 @@ Widget::Widget(Widget *parent)
     : m_parent(nullptr), m_theme(nullptr), m_layout(nullptr),
       m_pos(0), m_size(0), m_fixed_size(0), m_visible(true), m_enabled(true),
       m_focused(false), m_mouse_focus(false), m_tooltip(""), m_font_size(-1.f),
-      m_icon_extra_scale(1.f), m_cursor(Cursor::Arrow), m_selected(false), m_selectable(false) {
+      m_icon_extra_scale(1.f), m_cursor(Cursor::Arrow), m_selected(false), m_selectable(false), m_selectable_color(Color(62, 78, 184, 200)) {
     if (parent)
         parent->add_child(this);
 }
@@ -241,7 +241,7 @@ void Widget::request_focus() {
         widget = widget->parent();
     ((Screen *) widget)->update_focus(this);
 }
-#define NANOGUI_SHOW_WIDGET_BOUNDS
+
 void Widget::draw(NVGcontext *ctx) {
     #if defined(NANOGUI_SHOW_WIDGET_BOUNDS)
         nvgStrokeWidth(ctx, 1.0f);
@@ -252,11 +252,14 @@ void Widget::draw(NVGcontext *ctx) {
     #endif
     
     if (m_selected) {
+        nvgSave(ctx);
+        nvgReset(ctx);
         nvgStrokeWidth(ctx, 6);
         nvgBeginPath(ctx);
-        nvgRoundedRect(ctx, m_pos.x() + 2, m_pos.y() + 2, m_size.x() - 4, m_size.y() + - 4, 4);
-        nvgStrokeColor(ctx, nvgRGBA(62, 78, 184, 200));
+        nvgRoundedRect(ctx, absolute_position().x() - 2, absolute_position().y() - 2, m_size.x() + 4, m_size.y() + 4, 4);
+        nvgStrokeColor(ctx, m_selectable_color);
         nvgStroke(ctx);
+        nvgRestore(ctx);
     }
 
     if (m_children.empty())

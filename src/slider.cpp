@@ -19,6 +19,8 @@ Slider::Slider(Widget *parent)
     : Widget(parent), m_value(0.0f), m_range(0.f, 1.f),
       m_highlighted_range(0.f, 0.f) {
     m_highlight_color = Color(255, 80, 80, 70);
+    m_selectable = true;
+    m_step = 0;
 }
 
 Vector2i Slider::preferred_size(NVGcontext *) const {
@@ -60,7 +62,30 @@ bool Slider::mouse_button_event(const Vector2i &p, int /* button */, bool down, 
     return true;
 }
 
+bool Slider::gamepad_button_event(int jid, int button, int action) {
+    if (action && button == NANOGUI_GAMEPAD_BUTTON_DPAD_LEFT) {
+        m_value -= m_step;
+        m_value = fmin(fmax(m_value, m_range.first), m_range.second);
+        
+        if (m_callback) {
+            m_callback(m_value);
+        }
+        return true;
+    } else if (action && button == NANOGUI_GAMEPAD_BUTTON_DPAD_RIGHT) {
+        m_value += m_step;
+        m_value = fmin(fmax(m_value, m_range.first), m_range.second);
+        
+        if (m_callback) {
+            m_callback(m_value);
+        }
+        return true;
+    }
+    return false;
+}
+
 void Slider::draw(NVGcontext* ctx) {
+    Widget::draw(ctx);
+    
     Vector2f center = Vector2f(m_pos) + Vector2f(m_size) * 0.5f;
     float kr = (int) (m_size.y() * 0.4f), kshadow = 3;
 

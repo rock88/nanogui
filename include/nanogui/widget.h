@@ -55,6 +55,9 @@ public:
     const Theme *theme() const { return m_theme.get(); }
     /// Set the \ref Theme used to draw this widget
     virtual void set_theme(Theme *theme);
+    
+    Color selectable_color() const { return m_selectable_color; }
+    void set_selectable_color(Color color) { m_selectable_color = color; }
 
     /// Return the position relative to the parent widget
     const Vector2i &position() const { return m_pos; }
@@ -344,6 +347,7 @@ protected:
      */
     float m_icon_extra_scale;
     Cursor m_cursor;
+    Color m_selectable_color;
 };
 
 NAMESPACE_END(nanogui)
