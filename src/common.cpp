@@ -213,6 +213,11 @@ void keyboard_callback_event(int key, int scancode, int action, int modifiers) {
         screen->keyboard_event(key, scancode, action, modifiers);
 }
 
+void keyboard_character_event(unsigned int codepoint) {
+    for (auto screen : __nanogui_screens)
+        screen->keyboard_character_event(codepoint);
+}
+
 void cursor_pos_callback_event(double x, double y) {
     for (auto screen : __nanogui_screens)
         screen->cursor_pos_callback_event(x, y);

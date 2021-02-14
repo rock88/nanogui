@@ -244,6 +244,7 @@ extern NANOGUI_EXPORT void draw();
 
 extern NANOGUI_EXPORT void window_resize_callback_event(int width, int height, int fb_width, int fb_height);
 extern NANOGUI_EXPORT void keyboard_callback_event(int key, int scancode, int action, int modifiers);
+extern NANOGUI_EXPORT void keyboard_character_event(unsigned int codepoint);
 extern NANOGUI_EXPORT void cursor_pos_callback_event(double x, double y);
 extern NANOGUI_EXPORT void mouse_button_callback_event(int button, int action, int modifiers);
 extern NANOGUI_EXPORT void scroll_callback_event(double x, double y);
