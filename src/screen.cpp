@@ -38,7 +38,9 @@
 
 #  define GLFW_EXPOSE_NATIVE_WGL
 #  define GLFW_EXPOSE_NATIVE_WIN32
+#ifndef NANOGUI_NO_GLFW
 #  include <GLFW/glfw3native.h>
+#endif
 #endif
 
 /* Allow enforcing the GL2 implementation of NanoVG */

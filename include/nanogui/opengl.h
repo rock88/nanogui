@@ -213,6 +213,8 @@
 #include <OpenGL/gl3ext.h>
 #elif __SWITCH__
 #include <glad/glad.h>
+#elif defined(__LIBRETRO__)
+#include "glsym/glsym.h"
 #else
 #include <GL/gl.h>
 #include <GL/glext.h>
